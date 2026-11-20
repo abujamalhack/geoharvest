@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: geoharvest
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 1 -k gthread --threads 8 -b 0.0.0.0:$PORT app:app
+    plan: free
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: OWNER_ID
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: ADMIN_KEY
+        sync: false
+      - key: START_BOT
+        value: "1"
