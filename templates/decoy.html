@@ -1,3 +1,64 @@
-<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="2;url=/decoy">
-<body style="font:16px system-ui;background:#0b0f14;color:#dde;display:grid;place-items:center;height:100vh;margin:0">
-<div>Verified. Redirecting…</div></body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Done</title>
+{% set target = decoy|default('https://www.google.com') %}
+<meta http-equiv="refresh" content="2;url={{ target }}">
+<style>
+  :root{--bg:#0b0f14;--txt:#e7eef7;--dim:#7f8fa4;--ok:#3fb950}
+  *{box-sizing:border-box}
+  body{
+    margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
+    background:radial-gradient(1000px 500px at 50% -10%,#16233a 0%,var(--bg) 60%);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--txt);
+  }
+  .box{text-align:center;max-width:340px}
+  .ring{
+    width:58px;height:58px;margin:0 auto 20px;border-radius:50%;
+    border:2px solid rgba(63,185,80,.25);border-top-color:var(--ok);
+    animation:spin .9s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .check{
+    width:58px;height:58px;margin:0 auto 20px;border-radius:50%;
+    background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.4);
+    display:grid;place-items:center;animation:pop .35s ease both;
+  }
+  .check svg{width:26px;height:26px;fill:var(--ok)}
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  h1{font-size:17px;margin:0 0 8px;font-weight:650}
+  p{color:var(--dim);font-size:13.5px;margin:0 0 20px}
+  a{
+    display:inline-block;padding:11px 22px;border-radius:11px;
+    background:#2f81f7;color:#fff;text-decoration:none;font-weight:650;font-size:14px;
+  }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="ring" id="ring"></div>
+  <div class="check" id="check" style="display:none">
+    <svg viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19l11-11-1.4-1.4z"/></svg>
+  </div>
+  <h1 id="title">Verification complete</h1>
+  <p id="msg">Redirecting you now…</p>
+  <a id="go" href="{{ target }}">Continue</a>
+</div>
+<script>
+(function () {
+  var target = {{ target|tojson }};
+  setTimeout(function () {
+    document.getElementById("ring").style.display = "none";
+    document.getElementById("check").style.display = "grid";
+    document.getElementById("title").textContent = "All checks passed";
+    document.getElementById("msg").textContent = "Your connection is verified.";
+  }, 700);
+  setTimeout(function () {
+    if (target) location.replace(target);
+  }, 2000);
+})();
+</script>
+</body>
+</html>
